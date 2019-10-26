@@ -1,0 +1,13 @@
+*.pyc
+*.egg-info
+*.idea
+*.DS_Store
+*.DSStore
+*.pdf
+
+scrappy/
+results/
+build/
+dist/
+todo.txt
+.ipynb_checkpoints
