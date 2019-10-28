@@ -1,5 +1,5 @@
 import setuptools
-exec(open('navigation_vis/_version.py').read())
+exec(open('navigation_mdp/_version.py').read())
 
 # Ref: https://packaging.python.org/tutorials/packaging-projects/
 
@@ -21,7 +21,7 @@ setuptools.setup(
         'navigation_vis'
     ],
     dependency_links=[
-        'git+ssh://git@github.com/yrevar/navigation_vis@v0.1#egg=navigation_vis-0.1'
+        'git+ssh://git@github.com/yrevar/navigation_vis@v0.5#egg=navigation_vis-0.5'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
