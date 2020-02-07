@@ -137,7 +137,7 @@ class DiscreteStateSpace:
             self.loc_to_state_dict[loc].set_terminal_status(b_terminal_status)
 
     def set_terminal_status_by_idx(self, idx_lst, b_terminal_status=True):
-        for loc in idx_lst:
+        for idx in idx_lst:
             self.state_lst[idx].set_terminal_status(b_terminal_status)
 
     def reset_terminal_status(self):

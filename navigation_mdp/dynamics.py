@@ -30,19 +30,20 @@ class XYDynamics(AbstractDynamics):
 
     def _next_state(self, state, action):
         loc = state.location
-        if action == "U" and loc[1] + 1 < self.H:
-            loc_prime = (loc[0], loc[1] + 1)
-        elif action == "D" and loc[1] - 1 > 0:
-            loc_prime = (loc[0], loc[1] - 1)
-        elif action == "L" and loc[0] - 1 > 0:
+
+        if action not in self.ACTIONS:
+            raise Exception("Invalid action {}!".format(action))
+
+        if action == "U" and loc[0] - 1 >= 0:
             loc_prime = (loc[0] - 1, loc[1])
-        elif action == "R" and loc[0] + 1 < self.W:
+        elif action == "D" and  loc[0] + 1 < self.H:
             loc_prime = (loc[0] + 1, loc[1])
+        elif action == "L" and loc[1] - 1 >= 0:
+            loc_prime = (loc[0], loc[1] - 1)
+        elif action == "R" and loc[1] + 1 < self.W:
+            loc_prime = (loc[0], loc[1] + 1)
         else:
-            if action not in self.ACTIONS:
-                raise Exception("Invalid action {}!".format(action))
-            else:
-                loc_prime = loc
+            loc_prime = loc
         # print(state, action, "->", loc_prime)
         return self.state_space.loc_to_state_dict[loc_prime]
 
@@ -55,5 +56,5 @@ class XYDynamics(AbstractDynamics):
         if state.is_terminal():
             return state
         if self.slip_prob > np.random.random():
-            action = np.random.choice(OOPS_ACTIONS[action])
+            action = np.random.choice(self.OOPS_ACTIONS[action])
         return self._next_state(state, action)
