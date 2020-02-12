@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 """
-What, Where
+What, Where.
 """
 
 class DiscreteStateSpace:
@@ -140,6 +140,9 @@ class DiscreteStateSpace:
         for idx in idx_lst:
             self.state_lst[idx].set_terminal_status(b_terminal_status)
 
+    def get_terminal_states(self):
+        return [s for s in self.state_lst if s.terminal_status is True]
+
     def reset_terminal_status(self):
         for s in self.state_lst:
             s.set_terminal_status(False)
@@ -167,6 +170,9 @@ class State(object):
         return self.idx
 
     def get_id(self):
+        return self.location
+
+    def get_location(self):
         return self.location
 
     def get_class(self):

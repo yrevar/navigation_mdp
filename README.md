@@ -23,7 +23,7 @@ To install from source:
 If you're curious what it can do:
 
 ### 1. View examples in the notebook
-[Navigation MDP](./navigation_mdp.ipynb)
+[Navigation MDP](https://github.com/yrevar/navigation_mdp/blob/master/navigation_mdp.ipynb)
 
 ### 2. Play with it on Google Colab
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yrevar/navigation_mdp/blob/master/navigation_mdp.ipynb)

@@ -1,6 +1,6 @@
 import numpy as np
 """
-How
+How.
 """
 
 class AbstractDynamics:
@@ -8,6 +8,9 @@ class AbstractDynamics:
     def __init__(self, state_space):
         self.state_space = state_space
         pass
+
+    def get_actions(self):
+        raise NotImplementedError
 
     def take_action(self, state, action):
         raise NotImplementedError
@@ -18,7 +21,6 @@ class AbstractDynamics:
     def __call__(self, state, action):
         return self.get_next_states_distribution(state, action)
 
-
 class XYDynamics(AbstractDynamics):
     ACTIONS = ["U", "D", "L", "R"]
     OOPS_ACTIONS = {"U": ["L", "R"], "D": ["R", "L"], "L": ["D", "U"], "R": ["U", "D"]}
@@ -27,6 +29,13 @@ class XYDynamics(AbstractDynamics):
         super().__init__(state_space)
         self.slip_prob = slip_prob
         self.H, self.W = self.state_space.limits
+        self.a_to_idx = {a: i for i, a in enumerate(self.ACTIONS)}
+
+    def actions(self):
+        return self.ACTIONS
+
+    def action_idx(self, action):
+        return self.a_to_idx[action]
 
     def _next_state(self, state, action):
         loc = state.location

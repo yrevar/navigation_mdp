@@ -1,7 +1,7 @@
 import numpy as np
 from navigation_mdp.utils import one_hot_nd
 """
-Why
+Why.
 """
 
 class AbstractStateFeature:
