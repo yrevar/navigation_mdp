@@ -21,7 +21,7 @@ setuptools.setup(
         'navigation_vis'
     ],
     dependency_links=[
-        'git+ssh://git@github.com/yrevar/navigation_vis@v0.5#egg=navigation_vis-0.5'
+        'git+ssh://git@github.com/yrevar/navigation_vis@v0.5#egg=navigation_vis-0.7'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

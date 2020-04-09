@@ -9,13 +9,16 @@ class AbstractDynamics:
         self.state_space = state_space
         pass
 
-    def get_actions(self):
+    def actions(self):
         raise NotImplementedError
 
     def take_action(self, state, action):
         raise NotImplementedError
 
     def get_next_states_distribution(self, state, action):
+        raise NotImplementedError
+
+    def infer_action(self, s1, s2):
         raise NotImplementedError
 
     def __call__(self, state, action):
@@ -67,3 +70,40 @@ class XYDynamics(AbstractDynamics):
         if self.slip_prob > np.random.random():
             action = np.random.choice(self.OOPS_ACTIONS[action])
         return self._next_state(state, action)
+
+    def _is_valid_loc(self, loc):
+        if 0 <= loc[0] < self.H and 0 <= loc[1] < self.W:
+            return True
+        return False
+
+    def infer_action_by_loc(self, loc1, loc2):
+        # TODO: handle self.slip_prob
+        if not self._is_valid_loc(loc1) or not self._is_valid_loc(loc2):
+            raise Exception("Invalid input: locations out of bound!")
+        if loc1[0] == loc2[0] and loc1[1] == loc2[1]:
+            raise Exception("Invalid input: action not supported!")
+        if loc1[0] != loc2[0] and loc1[1] != loc2[1]:
+            raise Exception("Invalid input: action not supported!")
+
+        if loc2[0] - loc1[0] > 0:
+            return "D"
+        elif loc2[0] - loc1[0] < 0:
+            return "U"
+        elif loc2[1] - loc1[1] > 0:
+            return "R"
+        else: # loc2[1] - loc1[1] < 0
+            return "L"
+
+    def infer_action(self, s1, s2):
+        return self.infer_action_by_loc(s1.location, s2.location)
+
+    def loc_lst_to_a_lst(self, loc_lst):
+        return [self.infer_action_by_loc(loc_lst[i], loc_lst[i+1]) for i in range(len(loc_lst)-1)]
+
+    def a_lst_to_loc_lst(self, loc_0, a_lst):
+        loc_lst = [loc_0]
+        loc = loc_0
+        for a in a_lst:
+            loc = self.take_action(self.state_space.loc_to_state_dict[loc], a).location
+            loc_lst.append(loc)
+        return loc_lst
