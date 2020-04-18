@@ -43,3 +43,12 @@ class RewardStateScalar(AbstractStateRewardSpec):
             else:
                 self.reward_lst.append(default)
         self.reward_lst = np.asarray(self.reward_lst)
+
+class RewardStateFeatureModel(AbstractStateRewardSpec):
+
+    def __init__(self, state_space, r_model, preprocess_fn=lambda x: x, feature_kind="raw"):
+        super().__init__(state_space)
+        self.reward_lst = []
+        for state in self.state_space.state_lst:
+            self.reward_lst.append(r_model(preprocess_fn(state.get_features(kind=feature_kind))))
+        pass

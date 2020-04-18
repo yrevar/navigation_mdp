@@ -98,7 +98,7 @@ class XYDynamics(AbstractDynamics):
         return self.infer_action_by_loc(s1.location, s2.location)
 
     def loc_lst_to_a_lst(self, loc_lst):
-        return [self.infer_action_by_loc(loc_lst[i], loc_lst[i+1]) for i in range(len(loc_lst)-1)]
+        return [self.infer_action_by_loc(loc_lst[i], loc_lst[i+1]) for i in range(len(loc_lst)-1)] + [None,]
 
     def a_lst_to_loc_lst(self, loc_0, a_lst):
         loc_lst = [loc_0]

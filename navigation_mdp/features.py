@@ -119,16 +119,16 @@ class ImageDiscretizer:
         return self.get_image_grid()
 
 
-class FeatureStateIdxImage(AbstractStateFeature):
+class FeatureStateIdxToArray(AbstractStateFeature):
 
-    def __init__(self, state_space, state_idx_to_image_fn):
+    def __init__(self, state_space, state_idx_to_array_fn):
         super().__init__(state_space)
         self.features_lst = np.asarray([
-            state_idx_to_image_fn(state_idx) for state_idx in self.state_space.idxs.flatten()])
+            state_idx_to_array_fn(state_idx) for state_idx in self.state_space.idxs.flatten()])
 
-class FeatureStateLocImage(AbstractStateFeature):
+class FeatureStateLocToArray(AbstractStateFeature):
 
-    def __init__(self, state_space, state_loc_to_image_fn):
+    def __init__(self, state_space, state_loc_to_array_fn):
         super().__init__(state_space)
         self.features_lst = np.asarray(
-            [state_loc_to_image_fn(*state.location) for state in self.state_space])
+            [state_loc_to_array_fn(*state.location) for state in self.state_space])

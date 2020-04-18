@@ -99,38 +99,49 @@ class DiscreteStateSpace:
     def num_classes(self):
         return len(self.uniq_classes)
 
-    def attach_features(self, PHI_spec):
+    def attach_features(self, PHI_spec, feature_type="raw"):
         self.PHI_spec = PHI_spec
         for idx, features in enumerate(self.PHI_spec.get_all_features()):
-            self.state_lst[idx].attach_features(features)
+            self.state_lst[idx].attach_features(features, feature_type=feature_type)
 
-    def features(self, loc=None, idx=None, gridded=False):
+    def features(self, loc=None, idx=None, gridded=False, numpyize=True, feature_type="raw"):
         if loc is not None:
-            return np.asarray(self.loc_to_state_dict[loc].get_features())
+            return np.asarray(self.loc_to_state_dict[loc].get_features(feature_type=feature_type))
         elif idx is not None:
-            return np.asarray(self.state_lst[idx].get_features())
+            return np.asarray(self.state_lst[idx].get_features(feature_type=feature_type))
         else:
-            features_lst = np.asarray([self.state_lst[idx].get_features() for idx in range(self.n_states)])
+            features_lst = [self.state_lst[idx].get_features(feature_type=feature_type) for idx in range(self.n_states)]
             if gridded:
-                return features_lst.reshape(self.limits + self.feature_dim)
+                return np.asarray(features_lst).reshape(self.limits + self.feature_dim)
             else:
-                return features_lst
+                if numpyize:
+                    return np.asarray(features_lst, dtype=np.float32)
+                else:
+                    return features_lst
 
     @property
-    def feature_dim(self):
-        return self.features(idx=0).shape
+    def feature_dim(self, feature_type="raw"):
+        return self.features(idx=0, loc=None, gridded=False, feature_type=feature_type).shape
 
     def attach_rewards(self, R_spec):
         self.R_spec = R_spec
         for idx, reward in enumerate(self.R_spec.get_reward_lst()):
             self.state_lst[idx].attach_reward(reward)
 
-    def rewards(self, gridded=False):
-        rewards = np.asarray([self.state_lst[idx].get_reward() for idx in range(self.n_states)], dtype=np.float32)
+    def attach_reward_model(self, model, feature_type="raw"):
+        for s in self.state_lst:
+            s.attach_reward_model(model, feature_type=feature_type)
+
+    def rewards(self, numpyize=True, gridded=False):
         if gridded:
+            rewards = np.asarray([self.state_lst[idx].get_reward() for idx in range(self.n_states)], dtype=np.float32)
             return rewards.reshape(*self.limits, 1)
         else:
-            return rewards
+            rewards = [self.state_lst[idx].get_reward() for idx in range(self.n_states)]
+            if numpyize:
+                return np.asarray(rewards, dtype=np.float32)
+            else:
+                return rewards
 
     def set_terminal_status_by_loc(self, loc_lst, b_terminal_status=True):
         for loc in loc_lst:
@@ -158,12 +169,17 @@ class State(object):
 
     def __init__(self, location, idx=None,
                  class_id=None, features=None,
-                 reward=None, terminal_status=False):
+                 reward=None, reward_model=None,
+                 feature_type="raw",
+                 terminal_status=False):
         self.location = location
         self.idx = idx
         self.class_id = class_id
-        self.features = features
+        self.features = {}
+        self.features[feature_type] = features
         self.reward = reward
+        self.reward_model = {}
+        self.reward_model[feature_type] = reward_model
         self.terminal_status = terminal_status
 
     def get_idx(self):
@@ -178,11 +194,19 @@ class State(object):
     def get_class(self):
         return self.class_id
 
-    def get_features(self):
-        return self.features
+    def get_features(self, feature_type="raw"):
+        return self.features[feature_type]
 
-    def get_reward(self):
+    def get_reward(self, compute=True, feature_type="raw"):
+        if compute:
+            self.compute_reward(feature_type)
         return self.reward
+
+    def compute_reward(self, feature_type="raw"):
+        if self.reward_model[feature_type] is not None:
+            self.reward = self.reward_model[feature_type](self.get_features(feature_type=feature_type))
+        else:
+            pass
 
     def is_terminal(self):
         return self.terminal_status
@@ -190,11 +214,14 @@ class State(object):
     def attach_class(self, class_id):
         self.class_id = class_id
 
-    def attach_features(self, features):
-        self.features = features
+    def attach_features(self, features, feature_type="raw"):
+        self.features[feature_type] = features
 
     def attach_reward(self, reward):
         self.reward = reward
+
+    def attach_reward_model(self, reward_model, feature_type="raw"):
+        self.reward_model[feature_type] = reward_model
 
     def set_terminal_status(self, b_terminal_status):
         self.terminal_status = b_terminal_status
@@ -215,7 +242,8 @@ class State(object):
         return "State: " + str(self.location) + " [ "+ \
                ("C {} ".format(self.get_class()) if self.get_class() is not None else "") + \
                ("R {:.2f} ".format(self.get_reward()) if self.get_reward() is not None else "") + \
-               ("phi {} ".format(self.get_features().shape) if self.get_features() is not None else "") + \
+               ("raw features {} ".format(self.get_features(feature_type="raw").shape) \
+                    if self.get_features(feature_type="raw") is not None else "") + \
                ("Terminal " if self.is_terminal() else "") + \
                 "]"
 
