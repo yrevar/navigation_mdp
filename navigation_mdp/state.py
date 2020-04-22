@@ -1,11 +1,14 @@
 import itertools
 import numpy as np
+# from collections import defaultdict
 """
 What, Where.
 """
 
 class DiscreteStateSpace:
-    ''' Discrete State Space specification class '''
+    ''' Discrete State Space specification class
+    Note: Designed to handle any dimensionality but dim > 2 is not tested.
+    '''
 
     def __init__(self, *args):
         self.n_dims = len(args)
@@ -14,7 +17,6 @@ class DiscreteStateSpace:
         self.idxs = self._get_idxs()
         self.space = self._get_space()
         self.state_lst, self.loc_to_state_dict, self.state_to_loc_dict, self.loc_to_idx_dict = self._get_states()
-        self.T = None
 
     def _get_idxs(self):
         return np.arange(self.n_states).reshape(self.limits)
@@ -24,14 +26,13 @@ class DiscreteStateSpace:
             self.limits + (self.n_dims,))
 
     def _get_states(self):
-
         state_list = []
         loc_to_state_dict = {}
         state_to_loc_dict = {}
         loc_to_idx_dict = {}
         idx = 0
         for loc in list(itertools.product(*[np.arange(lim) for lim in self.limits])):
-            state = State(location=loc, idx=idx)
+            state = State(location=loc, idx=idx, parent_state_space=self)
             state_list.append(state)
             loc_to_state_dict[loc] = state
             state_to_loc_dict[state] = loc
@@ -99,45 +100,55 @@ class DiscreteStateSpace:
     def num_classes(self):
         return len(self.uniq_classes)
 
-    def attach_features(self, PHI_spec, feature_type="raw"):
-        self.PHI_spec = PHI_spec
-        for idx, features in enumerate(self.PHI_spec.get_all_features()):
-            self.state_lst[idx].attach_features(features, feature_type=feature_type)
+    def attach_feature_spec(self, PHI_spec, compute=True):
+        for state in self.state_lst:
+            state.attach_feature_spec(PHI_spec, compute=compute)
 
-    def features(self, loc=None, idx=None, gridded=False, numpyize=True, feature_type="raw"):
+    def add_feature_spec_ref(self, key, ref_key):
+        for state in self.state_lst:
+            state.add_feature_spec_ref(key, ref_key)
+
+    def clear_feature_spec(self):
+        for state in self.state_lst:
+            state.clear_feature_spec()
+
+    def features(self, loc=None, idx=None, gridded=False, numpyize=True, key=None):
         if loc is not None:
-            return np.asarray(self.loc_to_state_dict[loc].get_features(feature_type=feature_type))
+            return np.asarray(self.loc_to_state_dict[loc].get_features(key=key))
         elif idx is not None:
-            return np.asarray(self.state_lst[idx].get_features(feature_type=feature_type))
+            return np.asarray(self.state_lst[idx].get_features(key=key))
         else:
-            features_lst = [self.state_lst[idx].get_features(feature_type=feature_type) for idx in range(self.n_states)]
+            features_lst = [self.state_lst[idx].get_features(key=key) for idx in range(self.n_states)]
             if gridded:
-                return np.asarray(features_lst).reshape(self.limits + self.feature_dim)
+                return np.asarray(features_lst).reshape(self.limits + self.feature_dim(key=key))
             else:
                 if numpyize:
                     return np.asarray(features_lst, dtype=np.float32)
                 else:
                     return features_lst
 
-    @property
-    def feature_dim(self, feature_type="raw"):
-        return self.features(idx=0, loc=None, gridded=False, feature_type=feature_type).shape
+    def feature_dim(self, key=None):
+        return self.features(idx=0, loc=None, gridded=False, key=key).shape
 
-    def attach_rewards(self, R_spec):
-        self.R_spec = R_spec
-        for idx, reward in enumerate(self.R_spec.get_reward_lst()):
-            self.state_lst[idx].attach_reward(reward)
+    def attach_reward_spec(self, R_spec, compute=True):
+        for state in self.state_lst:
+            state.attach_reward_spec(R_spec, compute=compute)
 
-    def attach_reward_model(self, model, feature_type="raw"):
-        for s in self.state_lst:
-            s.attach_reward_model(model, feature_type=feature_type)
+    def add_reward_spec_ref(self, key, ref_key):
+        for state in self.state_lst:
+            state.add_reward_spec_ref(key, ref_key)
 
-    def rewards(self, numpyize=True, gridded=False):
+    def clear_reward_spec(self):
+        for state in self.state_lst:
+            state.clear_reward_spec()
+
+    def rewards(self, numpyize=True, gridded=False, key=None):
         if gridded:
-            rewards = np.asarray([self.state_lst[idx].get_reward() for idx in range(self.n_states)], dtype=np.float32)
+            rewards = np.asarray([self.state_lst[idx].get_reward(key=key) for idx in range(self.n_states)],
+                                 dtype=np.float32)
             return rewards.reshape(*self.limits, 1)
         else:
-            rewards = [self.state_lst[idx].get_reward() for idx in range(self.n_states)]
+            rewards = [self.state_lst[idx].get_reward(key=key) for idx in range(self.n_states)]
             if numpyize:
                 return np.asarray(rewards, dtype=np.float32)
             else:
@@ -159,7 +170,10 @@ class DiscreteStateSpace:
             s.set_terminal_status(False)
 
     def _organize_to_grid(self, values):
-        return np.asarray(values).reshape(self.limits + values[0].shape)
+        return np.asarray(values).reshape(self.shape() + values[0].shape)
+
+    def shape(self):
+        return self.limits
 
 
 class State(object):
@@ -169,18 +183,28 @@ class State(object):
 
     def __init__(self, location, idx=None,
                  class_id=None, features=None,
-                 reward=None, reward_model=None,
-                 feature_type="raw",
-                 terminal_status=False):
+                 reward=None, reward_spec=None,
+                 key=None, feature_spec=None,
+                 terminal_status=False, parent_state_space=None):
         self.location = location
         self.idx = idx
         self.class_id = class_id
-        self.features = {}
-        self.features[feature_type] = features
-        self.reward = reward
-        self.reward_model = {}
-        self.reward_model[feature_type] = reward_model
         self.terminal_status = terminal_status
+        self.parent_state_space = parent_state_space
+        self.features = features
+        self.feature_spec_dict = {}
+        if feature_spec is not None:
+            self.feature_spec_dict[key] = feature_spec
+        self.reward = reward
+        self.reward_spec_dict = {}
+        if reward_spec is not None:
+            self.reward_spec_dict[key] = reward_spec
+
+    def is_terminal(self):
+        return self.terminal_status
+
+    def set_terminal_status(self, b_terminal_status):
+        self.terminal_status = b_terminal_status
 
     def get_idx(self):
         return self.idx
@@ -194,37 +218,69 @@ class State(object):
     def get_class(self):
         return self.class_id
 
-    def get_features(self, feature_type="raw"):
-        return self.features[feature_type]
-
-    def get_reward(self, compute=True, feature_type="raw"):
-        if compute:
-            self.compute_reward(feature_type)
-        return self.reward
-
-    def compute_reward(self, feature_type="raw"):
-        if self.reward_model[feature_type] is not None:
-            self.reward = self.reward_model[feature_type](self.get_features(feature_type=feature_type))
-        else:
-            pass
-
-    def is_terminal(self):
-        return self.terminal_status
-
     def attach_class(self, class_id):
         self.class_id = class_id
 
-    def attach_features(self, features, feature_type="raw"):
-        self.features[feature_type] = features
+    def attach_feature_spec(self, feature_spec, compute=True):
+        self.feature_spec_dict[feature_spec.get_key()] = feature_spec
+        if compute:
+            self.compute_features(feature_spec.get_key())
 
-    def attach_reward(self, reward):
-        self.reward = reward
+    def add_feature_spec_ref(self, key, ref_key):
+        self.feature_spec_dict[ref_key] = self.feature_spec_dict[key]
 
-    def attach_reward_model(self, reward_model, feature_type="raw"):
-        self.reward_model[feature_type] = reward_model
+    def clear_feature_spec(self):
+        self.feature_spec_dict = {}
 
-    def set_terminal_status(self, b_terminal_status):
-        self.terminal_status = b_terminal_status
+    def attach_reward_spec(self, reward_spec, compute=True):
+        self.reward_spec_dict[reward_spec.get_key()] = reward_spec
+        if compute:
+            self.compute_reward(reward_spec.get_key())
+
+    def add_reward_spec_ref(self, key, ref_key):
+        self.reward_spec_dict[ref_key] = self.reward_spec_dict[key]
+
+    def clear_reward_spec(self):
+        self.reward_spec_dict = {}
+
+    def get_features(self, key=None, recompute=True):
+        if recompute:
+            self.compute_features(key=key)
+        return self.features
+
+    def get_reward(self, key=None, recompute=True):
+        if recompute:
+            self.compute_reward(key=key)
+        return self.reward
+
+    def compute_reward(self, key=None):
+        reward_spec = self.get_reward_spec(key)
+        if reward_spec is not None:
+            self.reward = reward_spec.compute_reward(self)
+        else:
+            pass
+
+    def compute_features(self, key=None):
+        feature_spec = self.get_feature_spec(key)
+        if feature_spec is not None:
+            self.features = feature_spec.compute_features(self)
+        else:
+            pass
+
+    def get_reward_spec_names(self):
+        return self.reward_spec_dict.keys()
+
+    def get_reward_spec(self, key):
+        return self.reward_spec_dict[key]
+
+    def get_feature_spec_names(self):
+        return self.feature_spec_dict.keys()
+
+    def get_feature_spec(self, key):
+        return self.feature_spec_dict[key]
+
+    def parent_space(self):
+        return self.parent_state_space
 
     def __hash__(self):
         if type(self.location).__module__ == np.__name__:
@@ -242,8 +298,7 @@ class State(object):
         return "State: " + str(self.location) + " [ "+ \
                ("C {} ".format(self.get_class()) if self.get_class() is not None else "") + \
                ("R {:.2f} ".format(self.get_reward()) if self.get_reward() is not None else "") + \
-               ("raw features {} ".format(self.get_features(feature_type="raw").shape) \
-                    if self.get_features(feature_type="raw") is not None else "") + \
+               ("features {} ".format(self.get_features().shape) if self.get_features() is not None else "") + \
                ("Terminal " if self.is_terminal() else "") + \
                 "]"
 
