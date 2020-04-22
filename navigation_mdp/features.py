@@ -4,80 +4,113 @@ from navigation_mdp.utils import one_hot_nd
 Why.
 """
 
-class AbstractStateFeature:
+class AbstractStateFeatureSpec:
 
-    def __init__(self, state_space):
-        self.state_space = state_space
-        self.features_lst = None
+    def __init__(self, key=None):
+        self.key = key
+        # self.features_lst = None
 
-    def __call__(self, loc=None, idx=None, gridded=False):
-        if loc is not None:
-            return self.get_features_at_loc(loc)
-        elif idx is not None:
-            return self.get_features_at_idx(idx)
-        else:
-            if gridded:
-                return self.get_all_features().reshape(self.state_space.limits + self.features_lst.shape[1:])
-            else:
-                return self.get_all_features()
+    def __call__(self, state):
+        return self.compute_features(state)
 
-    def __getitem__(self, idx):
-        return self.get_features_at_idx(idx)
+    def get_key(self):
+        return self.key
 
-    def __len__(self):
-        return len(self.features_lst)
+    def compute_features(self, state):
+        raise NotImplementedError
 
-    def get_all_features(self):
-        return self.features_lst
+    # def __call__(self, loc=None, idx=None, gridded=False):
+    #     if loc is not None:
+    #         return self.get_features_at_loc(loc)
+    #     elif idx is not None:
+    #         return self.get_features_at_idx(idx)
+    #     else:
+    #         if gridded:
+    #             return self.get_all_features().reshape(self.state_space.limits + self.features_lst.shape[1:])
+    #         else:
+    #             return self.get_all_features()
 
-    def get_features_at_idx(self, idx):
-        return self.features_lst[idx]
-
-    def get_features_at_loc(self, loc):
-        return self.features_lst[self.state_space.loc_to_idx_dict[loc]]
-
-
-class FeatureStateIndicator(AbstractStateFeature):
-
-    def __init__(self, state_space):
-        super().__init__(state_space)
-        self.features_lst = self.state_space.idxs.flatten()
-
-
-class FeatureStateIndicatorOneHot(AbstractStateFeature):
-
-    def __init__(self, state_space):
-        super().__init__(state_space)
-        self.features_lst = one_hot_nd(self.state_space.idxs.flatten(), N=self.state_space.n_states)
+    # def __getitem__(self, idx):
+    #     return self.get_features_at_idx(idx)
+    #
+    # def __len__(self):
+    #     return len(self.features_lst)
+    #
+    # def get_all_features(self):
+    #     return self.features_lst
+    #
+    # def get_features_at_idx(self, idx):
+    #     return self.features_lst[idx]
+    #
+    # def get_features_at_loc(self, loc):
+    #     return self.features_lst[self.state_space.loc_to_idx_dict[loc]]
 
 
-class FeatureClassIndicator(AbstractStateFeature):
+class FeatureStateIndicator(AbstractStateFeatureSpec):
 
     def __init__(self, state_space):
         super().__init__(state_space)
-        self.features_lst = self.state_space.class_ids
+
+    def compute_features(self, state):
+        return state.get_idx()
 
 
-class FeatureClassIndicatorOneHot(AbstractStateFeature):
+class FeatureStateIndicatorOneHot(AbstractStateFeatureSpec):
 
-    def __init__(self, state_space, K=None):
-        super().__init__(state_space)
-        max_class_id = max(self.state_space.class_ids) if K is None else K
-        self.features_lst = one_hot_nd(self.state_space.class_ids, N=max_class_id + 1)
+    def __init__(self, key=None, dim=None):
+        super().__init__(key)
+        self.dim = dim
 
-
-class FeatureClassImage(AbstractStateFeature):
-
-    def __init__(self, state_space, feature_map):
-        super().__init__(state_space)
-        self.features_lst = np.asarray([feature_map[clsid] for clsid in self.state_space.class_ids.flatten()])
+    def compute_features(self, state):
+        dim = state.parent_space().n_states if self.dim is None else self.dim
+        return one_hot_nd(np.asarray(state.get_idx()), N=dim)
 
 
-class FeatureClassImageSampler(AbstractStateFeature):
+class FeatureClassIndicator(AbstractStateFeatureSpec):
 
-    def __init__(self, state_space, feature_sampler):
-        super().__init__(state_space)
-        self.features_lst = np.asarray([feature_sampler(clsid) for clsid in self.state_space.class_ids.flatten()])
+    def __init__(self, key=None):
+        super().__init__(key)
+
+    def compute_features(self, state):
+        return state.get_class()
+
+
+class FeatureClassIndicatorOneHot(AbstractStateFeatureSpec):
+
+    def __init__(self, key=None, dim=None):
+        super().__init__(key)
+        self.dim = dim
+
+    def compute_features(self, state):
+        dim = max(state.parent_space().class_ids) + 1 if self.dim is None else self.dim
+        return one_hot_nd(np.asarray(state.get_class()), N=dim)
+
+
+class FeatureClassImage(AbstractStateFeatureSpec):
+
+    def __init__(self, feature_map, key=None):
+        super().__init__(key)
+        self.feature_map = feature_map
+
+    def compute_features(self, state):
+        return self.feature_map[state.get_class()]
+
+
+class FeatureClassImageSampler(AbstractStateFeatureSpec):
+
+    def __init__(self, feature_sampler, key=None):
+        super().__init__(key)
+        self.feature_sampler = feature_sampler
+        self.init_cache()
+
+    def compute_features(self, state, resample=True):
+        _class_id = state.get_class()
+        if resample or _class_id not in self.cache_class_id_to_image:
+            self.cache_class_id_to_image[_class_id] = self.feature_sampler(_class_id)
+        return self.cache_class_id_to_image[_class_id]
+
+    def init_cache(self):
+        self.cache_class_id_to_image = {}
 
 
 class ImageDiscretizer:
@@ -119,16 +152,20 @@ class ImageDiscretizer:
         return self.get_image_grid()
 
 
-class FeatureStateIdxToArray(AbstractStateFeature):
+class FeatureStateIdxToArray(AbstractStateFeatureSpec):
 
-    def __init__(self, state_space, state_idx_to_array_fn):
-        super().__init__(state_space)
-        self.features_lst = np.asarray([
-            state_idx_to_array_fn(state_idx) for state_idx in self.state_space.idxs.flatten()])
+    def __init__(self, state_idx_to_array_fn, key=None):
+        super().__init__(key)
+        self.state_idx_to_array_fn = state_idx_to_array_fn
 
-class FeatureStateLocToArray(AbstractStateFeature):
+    def compute_features(self, state):
+        return self.state_idx_to_array_fn(state.get_idx())
 
-    def __init__(self, state_space, state_loc_to_array_fn):
-        super().__init__(state_space)
-        self.features_lst = np.asarray(
-            [state_loc_to_array_fn(*state.location) for state in self.state_space])
+class FeatureStateLocToArray(AbstractStateFeatureSpec):
+
+    def __init__(self, state_loc_to_array_fn, key=None):
+        super().__init__(key)
+        self.state_loc_to_array_fn = state_loc_to_array_fn
+
+    def compute_features(self, state):
+        return self.state_loc_to_array_fn(*state.get_location())
