@@ -5,8 +5,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import cm as cm, pyplot as plt, colors as mplotcolors
 
 
-def plot_grid_data_helper(data, ann=None, ann_sz=12, ann_col="black", title=None, grid=None, cmap=cm.viridis):
-    p = NavGridView.Raster(data, ax=plt.gca()).render(cmap=cmap).ticks(minor=False)
+def plot_grid_data_helper(data, ann=None, ann_sz=12, ann_col="black", title=None, grid=None, cmap=cm.viridis, **kwargs):
+    p = NavGridView.Raster(data, ax=plt.gca()).render(cmap=cmap, **kwargs).ticks(minor=False)
     if ann is not None:
         p.show_cell_text(ann, fontsize=ann_sz, color_cb=lambda x: ann_col)
     if grid is not None:
@@ -23,8 +23,11 @@ def highlight_cell(x, y, ax=None, **kwargs):
 
 def plot_irl_world(S, s_lst_lst, titles=["States", "Classes", "Features", "Rewards"],
                    figsize=(18, 12), cbar_pad=1.0, cbar_size="10%",
-                   r_key=None, phi_key=None, r_round_to=3, clean_title=False):
+                   r_key=None, phi_key=None, r_round_to=3, clean_title=False,
+                   v_range=[None, None, None, None]):
     state_title, class_title, feature_title, reward_title = titles
+    v_range = [(None, None) if v is None else v for v in v_range]
+    state_range, class_range, feature_range, reward_range = v_range
     if not clean_title:
         feature_title += "(type={})".format(phi_key)
         reward_title += "(type={})".format(r_key)
@@ -33,31 +36,38 @@ def plot_irl_world(S, s_lst_lst, titles=["States", "Classes", "Features", "Rewar
     plt.subplot(2, 2, 1)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_states(
         cmap=cm.viridis, ann_col="white",
-        title=state_title).colorbar(where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
+        title=state_title, vmin=state_range[0], vmax=state_range[1]).colorbar(
+        where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
         [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
         arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(2, 2, 2)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_classes(
         cmap=cm.viridis, ann_col="white",
-        title=class_title).colorbar(where="right", pad=cbar_pad, size=cbar_size).grid()
+        title=class_title, vmin=class_range[0], vmax=class_range[1]).colorbar(
+        where="right", pad=cbar_pad, size=cbar_size).grid()
     plt.subplot(2, 2, 3)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_features(
         ann=S.idxs.flatten(), cmap=None, ann_col="white",
-        title=feature_title).colorbar(where="left", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
+        title=feature_title, vmin=feature_range[0], vmax=feature_range[1]).colorbar(
+        where="left", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
         [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
         arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(2, 2, 4)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_array(
         S.rewards(numpyize=True, key=r_key).round(r_round_to),
-        cmap=cm.Blues_r, title=reward_title).colorbar(where="right", pad=cbar_pad, size=cbar_size)
+        cmap=cm.Blues_r, title=reward_title, vmin=reward_range[0], vmax=reward_range[1]).colorbar(
+        where="right", pad=cbar_pad, size=cbar_size)
     plt.tight_layout()
 
 
 def plot_irl_results(S, s_lst_lst, values, loglik_hist,
                      titles=["States", "Features", "Rewards", "Values", "Training Performance"],
                      figsize=(24, 24), cbar_pad=1.0, cbar_size="10%",
-                     r_key=None, phi_key=None, r_round_to=3, clean_title=False):
+                     r_key=None, phi_key=None, r_round_to=3, clean_title=False,
+                     v_range=[None, None, None, None, None]):
     state_title, feature_title, reward_title, value_title, perf_title = titles
+    v_range = [(None, None) if v is None else v for v in v_range]
+    state_range, feature_range, reward_range, value_range, _ = v_range
     if not clean_title:
         feature_title += "(type={})".format(phi_key)
         reward_title += "(type={})".format(r_key)
@@ -66,24 +76,28 @@ def plot_irl_results(S, s_lst_lst, values, loglik_hist,
     plt.subplot(3, 2, 1)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_states(
         cmap=cm.viridis, ann_col="white",
-        title=state_title).colorbar(where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
+        title=state_title, vmin=state_range[0], vmax=state_range[1]).colorbar(
+        where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
         [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
         arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 2)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_features(
         ann=S.idxs.flatten(), cmap=cm.viridis, ann_col="white",
-        title=feature_title).colorbar(where="right", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
+        title=feature_title, vmin=feature_range[0], vmax=feature_range[1]).colorbar(
+        where="right", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
         [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
         arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 3)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_array(
         S.rewards(numpyize=True, key=r_key).round(r_round_to),
-        cmap=cm.Blues_r, title=reward_title).colorbar(where="left", pad=cbar_pad, size=cbar_size).add_pixel_trajectories(
+        cmap=cm.Blues_r, title=reward_title, vmin=reward_range[0], vmax=reward_range[1]).colorbar(
+        where="left", pad=cbar_pad, size=cbar_size).add_pixel_trajectories(
         [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
         arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 4)
     NavGridViewPlotter(S, r_key=r_key, phi_key=phi_key).plot_array(
-        values, cmap=cm.Blues_r, title=value_title).colorbar(where="right", pad=cbar_pad, size=cbar_size)
+        values, cmap=cm.Blues_r, title=value_title, vmin=value_range[0], vmax=value_range[1]).colorbar(
+        where="right", pad=cbar_pad, size=cbar_size)
     plt.subplot(3, 2, 5)
     plt.plot(list(range(len(loglik_hist))), loglik_hist)
     plt.xlabel("Iteration")

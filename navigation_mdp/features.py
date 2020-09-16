@@ -103,14 +103,14 @@ class FeatureClassImageSampler(AbstractStateFeatureSpec):
         self.feature_sampler = feature_sampler
         self.init_cache()
 
-    def compute_features(self, state, resample=True):
-        _class_id = state.get_class()
-        if resample or _class_id not in self.cache_class_id_to_image:
-            self.cache_class_id_to_image[_class_id] = self.feature_sampler(_class_id)
-        return self.cache_class_id_to_image[_class_id]
+    def compute_features(self, state, resample=False):
+        state_id = state.get_idx()
+        if resample or state_id not in self.cache_state_idx_to_image:
+            self.cache_state_idx_to_image[state_id] = self.feature_sampler(state.get_class())
+        return self.cache_state_idx_to_image[state_id]
 
     def init_cache(self):
-        self.cache_class_id_to_image = {}
+        self.cache_state_idx_to_image = {}
 
 
 class ImageDiscretizer:
@@ -138,6 +138,15 @@ class ImageDiscretizer:
                 img_lst[-1].append(self.img_clipped[ (i) * self.cell_height: (i +  2*self.aug_cell_cnt_h + 1) * self.cell_height,
                                    (j) * self.cell_width: (j + 2*self.aug_cell_cnt_w + 1) * self.cell_width])
         return np.asarray(img_lst)
+
+    def transform_trajectories(self, traj_list):
+        new_traj_list = []
+        for traj in traj_list:
+            new_traj = []
+            for point in traj:
+                new_traj.append((round(point[0] / self.cell_width), round(point[1] / self.cell_height)))
+            new_traj_list.append(new_traj)
+        return new_traj_list
 
     def get_raw_image(self):
         return self.img_clipped

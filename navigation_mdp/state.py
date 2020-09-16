@@ -58,8 +58,8 @@ class DiscreteStateSpace:
             return self.__getitem__(idx)
 
     def __getitem__(self, idx):
-        if type(idx) == tuple:
-            return self.at_loc(loc=idx)
+        if type(idx) == tuple or type(idx) == list:
+            return self.at_loc(loc=tuple(idx))
         else:
             return self.state_lst[idx]
 
@@ -137,6 +137,12 @@ class DiscreteStateSpace:
     def add_reward_spec_ref(self, key, ref_key):
         for state in self.state_lst:
             state.add_reward_spec_ref(key, ref_key)
+
+    def get_reward_keys(self):
+        return self.state_lst[0].get_reward_keys()
+
+    def get_feature_keys(self):
+        return self.state_lst[0].get_feature_keys()
 
     def clear_reward_spec(self):
         for state in self.state_lst:
@@ -267,14 +273,14 @@ class State(object):
         else:
             pass
 
-    def get_reward_spec_names(self):
-        return self.reward_spec_dict.keys()
+    def get_reward_keys(self):
+        return list(self.reward_spec_dict.keys())
 
     def get_reward_spec(self, key):
         return self.reward_spec_dict[key]
 
-    def get_feature_spec_names(self):
-        return self.feature_spec_dict.keys()
+    def get_feature_keys(self):
+        return list(self.feature_spec_dict.keys())
 
     def get_feature_spec(self, key):
         return self.feature_spec_dict[key]
