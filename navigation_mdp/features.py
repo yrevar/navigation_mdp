@@ -144,7 +144,7 @@ class ImageDiscretizer:
         for traj in traj_list:
             new_traj = []
             for point in traj:
-                new_traj.append((round(point[0] / self.cell_width), round(point[1] / self.cell_height)))
+                new_traj.append([round(point[0] / self.cell_width), round(point[1] / self.cell_height)])
             new_traj_list.append(new_traj)
         return new_traj_list
 
