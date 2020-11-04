@@ -1,9 +1,11 @@
+from abc import ABC, abstractmethod
+from .state import State, DiscreteStateSpace
 import numpy as np
 """
 Objective, Utility
 """
 
-class AbstractStateRewardSpec:
+class AbstractStateRewardSpec(ABC):
 
     def __init__(self, key=None, feature_key=None, preprocess_fn=lambda x: x, postprocess_fn=lambda x: x):
         self.key = key
@@ -11,8 +13,8 @@ class AbstractStateRewardSpec:
         self.preprocess_fn = preprocess_fn
         self.postprocess_fn = postprocess_fn
 
-    def __call__(self, state):
-        return self.compute_reward(state)
+    def __call__(self, x):
+        return self.reward(x)
 
     def get_key(self):
         return self.key
@@ -20,11 +22,21 @@ class AbstractStateRewardSpec:
     def get_feature_key(self):
         return self.feature_key
 
-    def compute_reward(self, state):
-        raise NotImplementedError
+    @abstractmethod
+    def compute_state_reward(self, state):
+        return
 
-    def reward(self, state):
-        return self.compute_reward(state)
+    @abstractmethod
+    def compute_state_space_reward(self, discrete_state_space):
+        return
+
+    def reward(self, x):
+        if isinstance(x, State):
+            return self.compute_state_reward(x)
+        elif isinstance(x, DiscreteStateSpace):
+            return self.compute_state_space_reward(x)
+        else:
+            raise ValueError("Incorrect input in reward spec: {}".format(type(x)))
 
     def preprocess(self, features):
         return self.preprocess_fn(features)
@@ -34,6 +46,10 @@ class AbstractStateRewardSpec:
 
     def features(self, state):
         return self.preprocess(state.get_features(key=self.get_feature_key()))
+
+    @abstractmethod
+    def get_model(self):
+        return
 
 
 class RewardStateScalar(AbstractStateRewardSpec):
@@ -45,7 +61,7 @@ class RewardStateScalar(AbstractStateRewardSpec):
         self.class_id_to_reward_dict = class_id_to_reward_dict
         self.default = default
 
-    def compute_reward(self, state):
+    def compute_state_reward(self, state):
         # loc_to_reward_dict overrides class_id_to_reward_dict
         if (self.loc_to_reward_dict is not None) and state.location in self.loc_to_reward_dict:
             return self.postprocess_fn(
@@ -60,6 +76,15 @@ class RewardStateScalar(AbstractStateRewardSpec):
                 self.preprocess_fn(self.default)
             )
 
+    def get_model(self):
+        raise NotImplementedError
+
+    def compute_state_space_reward(self, discrete_state_space):
+        rewards = []
+        for state in discrete_state_space:
+            rewards.append(self.compute_state_reward(state))
+        return rewards
+
 class RewardStateFeatureModel(AbstractStateRewardSpec):
 
     def __init__(self, r_model, key=None, feature_key=None,
@@ -67,7 +92,18 @@ class RewardStateFeatureModel(AbstractStateRewardSpec):
         super().__init__(key, feature_key, preprocess_fn, postprocess_fn)
         self.r_model = r_model
 
-    def compute_reward(self, state):
+    def compute_state_reward(self, state):
         return self.postprocess_fn(
             self.r_model(self.preprocess_fn(state.get_features(key=self.get_feature_key())))
+        )
+
+    def get_model(self):
+        return self.r_model
+
+    def compute_state_space_reward(self, discrete_state_space):
+        PHI = np.asarray(discrete_state_space.features(loc=None, idx=None,
+                                                       gridded=False, numpyize=False,
+                                                       key=self.get_feature_key()))
+        return self.postprocess_fn(
+            self.r_model(self.preprocess_fn(PHI))
         )

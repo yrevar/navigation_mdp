@@ -139,14 +139,15 @@ class ImageDiscretizer:
                                    (j) * self.cell_width: (j + 2*self.aug_cell_cnt_w + 1) * self.cell_width])
         return np.asarray(img_lst)
 
-    def transform_trajectories(self, traj_list):
-        new_traj_list = []
-        for traj in traj_list:
-            new_traj = []
-            for point in traj:
-                new_traj.append([np.floor(point[0] / self.cell_width), np.floor(point[1] / self.cell_height)])
-            new_traj_list.append(new_traj)
-        return new_traj_list
+    def transform_state_list(self, state_list):
+        new_state_list = []
+        for state in state_list:
+            new_state_list.append((int(np.floor(state[0] / self.cell_width)),
+                                   int(np.floor(state[1] / self.cell_height))))
+        return new_state_list
+
+    def transform_state_list_list(self, state_list_list):
+        return [self.transform_state_list(state_list) for state_list in state_list_list]
 
     def get_raw_image(self):
         return self.img_clipped

@@ -141,6 +141,9 @@ class DiscreteStateSpace:
     def get_reward_keys(self):
         return self.state_lst[0].get_reward_keys()
 
+    def get_reward_spec(self, key):
+        return self.state_lst[0].get_reward_spec(key)
+
     def get_feature_keys(self):
         return self.state_lst[0].get_feature_keys()
 
@@ -262,7 +265,7 @@ class State(object):
     def compute_reward(self, key=None):
         reward_spec = self.get_reward_spec(key)
         if reward_spec is not None:
-            self.reward = reward_spec.compute_reward(self)
+            self.reward = reward_spec.compute_state_reward(self)
         else:
             pass
 

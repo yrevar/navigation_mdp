@@ -39,8 +39,7 @@ def plot_irl_world(S, s_lst_lst=[], titles=["States", "Classes", "Features", "Re
         cmap=cm.viridis, ann_col="white",
         title=state_title, vmin=state_range[0], vmax=state_range[1]).colorbar(
         where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        s_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(2, 2, 2)
     p.plot_classes(
         cmap=cm.viridis, ann_col="white",
@@ -51,8 +50,7 @@ def plot_irl_world(S, s_lst_lst=[], titles=["States", "Classes", "Features", "Re
         ann=S.idxs.flatten(), cmap=None, ann_col="white",
         title=feature_title, vmin=feature_range[0], vmax=feature_range[1]).colorbar(
         where="left", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        s_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(2, 2, 4)
     p.plot_array(
         S.rewards(numpyize=True, key=r_key).round(r_round_to),
@@ -80,28 +78,24 @@ def plot_irl_results(S, s_lst_lst, values, loglik_hist,
         cmap=cm.viridis, ann_col="white",
         title=state_title, vmin=state_range[0], vmax=state_range[1]).colorbar(
         where="left", pad=cbar_pad, size=cbar_size).grid().add_pixel_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        s_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 2)
     p.plot_features(
         ann=S.idxs.flatten(), cmap=cm.viridis, ann_col="white",
         title=feature_title, vmin=feature_range[0], vmax=feature_range[1]).colorbar(
         where="right", pad=cbar_pad, size=cbar_size).grid().add_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in s_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        s_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 3)
     p.plot_array(
         S.rewards(numpyize=True, key=r_key).round(r_round_to),
         cmap=cm.Blues_r, title=reward_title, vmin=reward_range[0], vmax=reward_range[1]).colorbar(
         where="left", pad=cbar_pad, size=cbar_size).add_pixel_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in learned_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        learned_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 4)
     p.plot_array(
         values, cmap=cm.Blues_r, title=value_title, vmin=value_range[0], vmax=value_range[1]).colorbar(
         where="right", pad=cbar_pad, size=cbar_size).add_pixel_trajectories(
-        [[(s[1], s[0]) for s in s_lst] for s_lst in learned_lst_lst],
-        arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
+        learned_lst_lst, arrow_props={"lw": 3, "color": "black", "shrinkB": 10, "shrinkA": 10})
     plt.subplot(3, 2, 5)
     plt.plot(list(range(len(loglik_hist))), loglik_hist)
     plt.xlabel("Iteration")
