@@ -179,3 +179,13 @@ class FeatureStateLocToArray(AbstractStateFeatureSpec):
 
     def compute_features(self, state):
         return self.state_loc_to_array_fn(*state.get_location())
+
+
+class FeatureClassIdxToArray(AbstractStateFeatureSpec):
+
+    def __init__(self, class_idx_to_array_fn, key=None):
+        super().__init__(key)
+        self.class_idx_to_array_fn = class_idx_to_array_fn
+
+    def compute_features(self, state):
+        return self.class_idx_to_array_fn(state.get_class())
