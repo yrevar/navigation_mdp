@@ -1,8 +1,6 @@
 # Navigation MDP
 
-A bare-bones Python3 interface for specifying navigation mdp. Designed to provide more natural syntax to specify MDP while also providing some extensibility required for experimentation. 
-
-## Markov Decision Process (MDP)
+A simple library for experimenting with Markov Decision Process (MDP). Designed specifically for studying Navigation problems.
 
 MDP is defined by states S, dynamics T, actions A, and rewards R. The design philosophy of this library is that each entity in the MDP is a separate object. State is the central entity. Everything else is optional, and can be defined and attached to the states as per the need.
 
@@ -32,11 +30,26 @@ If you're curious what it can do:
 ### 3. Play with it on MyBinder
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/yrevar/navigation_mdp/master?urlpath=https%3A%2F%2Fgithub.com%2Fyrevar%2Fnavigation_mdp%2Fblob%2Fmaster%2Fnavigation_mdp.ipynb)
 
+## Example
+Create a 3 x 3 state space:
+
+    S = DiscreteStateSpace(3,3)
+
+
+Attach indicator features:
+
+    S.attach_feature_spec(FeatureStateIndicatorOneHot("ind"))
+
+Visualize the world:
+
+    p = NavGridView(S.features(key="ind", gridded=True)[..., np.newaxis, np.newaxis]).render().ticks().grid()
+    plt.colorbar(p.im)
+
 ## Dependency
 For visualizations: https://github.com/yrevar/navigation_vis
 
 # Acknowledgements
-- Thanks to Michael Littman, Lucas Lehnert, and David Abel for all the discussions which were very helpful in developing concepts.       
-- State class is inspired from David Abel's Simple RL framework: https://github.com/david-abel/simple_rl 
+- Thanks to Prof. Michael L. Littman, Dr. Lucas Lehnert, and Dr. David Abel for all the discussions which were very helpful in developing concepts.       
+- State class is inspired from Dr. Abel's Simple RL framework: https://github.com/david-abel/simple_rl 
 
 

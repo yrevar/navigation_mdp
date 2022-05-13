@@ -48,8 +48,8 @@ class AbstractStateFeatureSpec:
 
 class FeatureStateIndicator(AbstractStateFeatureSpec):
 
-    def __init__(self, state_space):
-        super().__init__(state_space)
+    def __init__(self, key=None):
+        super().__init__(key)
 
     def compute_features(self, state):
         return state.get_idx()
