@@ -13,7 +13,7 @@ class DiscreteStateSpace:
     def __init__(self, *args):
         self.n_dims = len(args)
         self.limits = args
-        self.n_states = np.product(self.limits)
+        self.n_states = np.prod(self.limits)
         self.idxs = self._get_idxs()
         self.space = self._get_space()
         self.state_lst, self.loc_to_state_dict, self.state_to_loc_dict, self.loc_to_idx_dict = self._get_states()
