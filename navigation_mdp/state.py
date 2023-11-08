@@ -159,7 +159,7 @@ class DiscreteStateSpace:
         else:
             rewards = [self.state_lst[idx].get_reward(key=key) for idx in range(self.n_states)]
             if numpyize:
-                return np.asarray([r.detach() for r in rewards], dtype=np.float32)
+                return np.asarray([r.detach() if 'detach' in dir(r) else r for r in rewards], dtype=np.float32)
             else:
                 return rewards
 
