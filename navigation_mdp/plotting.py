@@ -108,7 +108,7 @@ class NavGridViewPlotter:
         self.S = S
         self.R = S.rewards(key=r_key) if R is None else R
         self.PHI_gridded = self.S.features(gridded=True, key=phi_key)
-        self.R_grided = self.S._organize_to_grid(self.R)
+        self.R_grided = self.S._organize_to_grid(np.array([r.detach() if 'detach' in dir(r)  else r for r in self.R]))
         self.class_ids_grided = self.S._organize_to_grid(self.S.class_ids)
         self.idxs_gridded = self.S.idxs
         self.cartesian = cartesian

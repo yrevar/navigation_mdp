@@ -153,7 +153,7 @@ class DiscreteStateSpace:
 
     def rewards(self, numpyize=True, gridded=False, key=None):
         if gridded:
-            rewards = np.asarray([self.state_lst[idx].get_reward(key=key) for idx in range(self.n_states)],
+            rewards = np.asarray([self.state_lst[idx].get_reward(key=key).detach() for idx in range(self.n_states)],
                                  dtype=np.float32)
             return rewards.reshape(*self.limits, 1)
         else:
